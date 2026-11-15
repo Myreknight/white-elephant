@@ -6,7 +6,7 @@ A host app for running a White Elephant gift swap on the big screen.
 
 ## How it works
 
-1. **Setup**: add players (the list order is the turn order; there's a Shuffle button) and gifts.
+1. **Setup**: add players (the turn order is drawn at random when the game starts) and gifts.
    Each gift has two images:
    - **Mystery**: what everyone sees while it's wrapped (a photo of the wrapped gift, or anything you like). Skip it and you get a wrapped-box design.
    - **Gift**: revealed when someone opens it. It stays blurred in Setup until you hover, so you don't spoil anything.
@@ -16,6 +16,7 @@ A host app for running a White Elephant gift swap on the big screen.
 3. When every gift is open, the game ends (or player 1 gets a final swap, if that rule is on), and **See who got what** shows the results.
 
 ### House rules (Setup → House rules)
+- **Random turn order** (on by default): players are shuffled when you press *Draw order & start*, and the drawn order pops up for everyone to see. Turn it off to set the order yourself.
 - **Max steals per gift** (default 3). After that a gift is locked with whoever has it. Set to 0 for no limit.
 - **No immediate steal-backs**: someone who was just robbed can't take the same gift straight back.
 - **One steal per player per turn**: if someone who already stole during this turn gets robbed again, they have to unwrap a new gift. This stops endless steal chains.

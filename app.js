@@ -169,7 +169,7 @@
   const freshState = () => ({
     v: 1,
     title: 'White Elephant',
-    settings: { maxSteals: 3, noStealBack: true, oneStealPerTurn: true, finalSwap: true },
+    settings: { randomOrder: true, maxSteals: 3, noStealBack: true, oneStealPerTurn: true, finalSwap: true },
     participants: [], // { id, name } — array order is the turn order
     gifts: [],        // { id, name, color }
     game: null,       // see startGame()
@@ -312,14 +312,21 @@
     const P = state.participants.length, G = state.gifts.length;
     if (P < 2) return toast('Add at least two players first.');
     if (!G) return toast('Add at least one gift first.');
-    const go = () => commit(() => {
-      state.game = {
-        phase: 'playing', order: state.participants.map((p) => p.id), turn: -1,
-        active: null, reason: 'turn', blocked: null, gifts: {}, log: [], lastEvent: null,
-      };
-      log('Game started.');
-      nextTurn();
-    });
+    const random = !!state.settings.randomOrder;
+    const go = () => {
+      // draw the turn order; the players list is reordered to match so numbers line up everywhere
+      if (random) shuffleArr(state.participants);
+      const ev = random ? { id: uid(), type: 'draw', at: Date.now() } : null;
+      commit(() => {
+        state.game = {
+          phase: 'playing', order: state.participants.map((p) => p.id), turn: -1,
+          active: null, reason: 'turn', blocked: null, gifts: {}, log: [], lastEvent: ev,
+        };
+        log(random ? `Game started. Turn order drawn: ${state.participants.map((p) => p.name).join(', ')}.` : 'Game started.');
+        nextTurn();
+      });
+      if (ev) { seen.add(ev.id); playEvent(ev); }
+    };
     if (P !== G) {
       openModal({
         title: 'Numbers don’t match',
@@ -488,7 +495,7 @@
           <label class="eyebrow" for="ev-title">Event name</label>
           <input id="ev-title" class="title-input" data-field="title" value="${esc(state.title)}" maxlength="60" autocomplete="off" spellcheck="false">
           <ol class="steps">
-            <li><b>1</b>Add players — list order is turn order</li>
+            <li><b>1</b>Add players — ${state.settings.randomOrder ? 'turn order is drawn at start' : 'list order is turn order'}</li>
             <li><b>2</b>Add gifts: a mystery photo and a reveal photo</li>
             <li><b>3</b>Hit Play and put it on the big screen</li>
           </ol>
@@ -513,23 +520,27 @@
 
   function playersPanel(inGame) {
     const P = state.participants;
+    const random = !!state.settings.randomOrder;
+    const fixed = random && !inGame; // order not decided yet
     return `
     <section class="panel">
       <div class="panel-head">
         <h2>Players <span class="count">${P.length}</span></h2>
-        <button class="btn ghost sm" data-action="shuffle" ${inGame || P.length < 2 ? 'disabled' : ''}>${icon('shuffle')} Shuffle</button>
+        ${random ? '' : `<button class="btn ghost sm" data-action="shuffle" ${inGame || P.length < 2 ? 'disabled' : ''}>${icon('shuffle')} Shuffle</button>`}
       </div>
+      ${fixed ? `<p class="hint">Turn order is drawn at random when the game starts.</p>` : ''}
       <form class="add-row" data-form="add-player" autocomplete="off">
         <input id="add-player" class="input" value="${esc(draftPlayer)}" placeholder="Add a name, or paste a list" maxlength="400" enterkeyhint="done" aria-label="Player name">
         <button class="btn" type="submit">${icon('plus')} Add</button>
       </form>
       ${P.length ? `<ol class="player-list">${P.map((p, i) => `
         <li>
-          <span class="pnum">${i + 1}</span>
-          <input class="pname" data-player-name="${p.id}" value="${esc(p.name)}" maxlength="40" aria-label="Player ${i + 1} name" spellcheck="false">
+          <span class="pnum">${fixed ? '•' : i + 1}</span>
+          <input class="pname" data-player-name="${p.id}" value="${esc(p.name)}" maxlength="40" aria-label="Player name" spellcheck="false">
           <span class="row-actions">
+            ${random ? '' : `
             <button class="icon-btn" data-action="move-up" data-id="${p.id}" ${inGame || i === 0 ? 'disabled' : ''} aria-label="Move ${esc(p.name)} up">${icon('up')}</button>
-            <button class="icon-btn" data-action="move-down" data-id="${p.id}" ${inGame || i === P.length - 1 ? 'disabled' : ''} aria-label="Move ${esc(p.name)} down">${icon('down')}</button>
+            <button class="icon-btn" data-action="move-down" data-id="${p.id}" ${inGame || i === P.length - 1 ? 'disabled' : ''} aria-label="Move ${esc(p.name)} down">${icon('down')}</button>`}
             <button class="icon-btn danger" data-action="remove-player" data-id="${p.id}" ${inGame ? 'disabled' : ''} aria-label="Remove ${esc(p.name)}">${icon('x')}</button>
           </span>
         </li>`).join('')}</ol>`
@@ -542,6 +553,10 @@
     return `
     <section class="panel">
       <div class="panel-head"><h2>House rules</h2></div>
+      <label class="check first">
+        <input type="checkbox" data-setting="randomOrder" ${s.randomOrder ? 'checked' : ''}>
+        <span><b>Random turn order</b><small>Players are shuffled when the game starts. Turn this off to set the order yourself, e.g. if you drew numbers from a hat.</small></span>
+      </label>
       <label class="field">
         <span class="field-label">Max steals per gift</span>
         <input class="input num" type="number" min="0" max="20" inputmode="numeric" data-setting="maxSteals" value="${esc(s.maxSteals)}">
@@ -665,9 +680,14 @@
       tone = 'ready';
       eyebrow = `${plural(P.length, 'player')} · ${plural(G.length, 'gift')}`;
       title = 'Ready to unwrap?';
-      sub = `<b>${esc(pName(P[0]?.id))}</b> goes first. Shuffle the order if you haven’t drawn numbers.`;
-      actions = `<button class="btn ghost" data-action="shuffle">${icon('shuffle')} Shuffle order</button>
-                 <button class="btn primary lg" data-action="start">Start the game</button>`;
+      if (state.settings.randomOrder) {
+        sub = 'The turn order is drawn at random when you start.';
+        actions = `<button class="btn primary lg" data-action="start">${icon('shuffle')} Draw order &amp; start</button>`;
+      } else {
+        sub = `<b>${esc(pName(P[0]?.id))}</b> goes first, following the order in Setup.`;
+        actions = `<button class="btn ghost" data-action="shuffle">${icon('shuffle')} Shuffle order</button>
+                   <button class="btn primary lg" data-action="start">Start the game</button>`;
+      }
     } else if (g.phase === 'over') {
       tone = 'over';
       eyebrow = 'Game over';
@@ -787,7 +807,7 @@
         ${g && g.phase === 'playing' && g.active ? `<button class="btn sm ghost" data-action="skip">${icon('skip')} Skip</button>` : ''}
         ${g ? `<button class="btn sm ghost danger" data-action="reset">Reset</button>` : ''}
       </div>
-      <h3 class="side-title">Turn order</h3>
+      <h3 class="side-title">${!g && state.settings.randomOrder ? 'Players · order drawn at start' : 'Turn order'}</h3>
       <ol class="turns">${order.map((pid, i) => turnRow(pid, i, nextIdx)).join('')}</ol>
       ${g ? `<p class="side-hint">Host tip: click a name to give them the turn, or a gift’s <span class="kbd">•••</span> to reassign it.</p>` : ''}
       ${g && g.log.length ? `
@@ -808,7 +828,7 @@
     if (g && !held.length) status = now ? 'choosing…' : next ? 'up next' : i <= g.turn ? 'no gift' : 'waiting';
     return `
     <li class="turn ${now ? 'now' : ''} ${next ? 'next' : ''}" ${clickable ? `data-action="make-active" data-id="${pid}" role="button" tabindex="0" title="Give ${esc(pName(pid))} the turn"` : ''}>
-      <span class="tnum">${i + 1}</span>
+      <span class="tnum">${!g && state.settings.randomOrder ? '?' : i + 1}</span>
       <span class="tbody">
         <span class="tname">${esc(pName(pid))}</span>
         ${held.length
@@ -955,7 +975,21 @@
     setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), 300); }, 2800);
   }
 
+  function showDraw() {
+    const g = state.game;
+    if (!g) return;
+    openModal({
+      title: 'The draw is in!',
+      body: `<p class="muted">Here’s the turn order — <b>${esc(pName(g.order[0]))}</b> goes first.</p>
+        <ol class="turns draw">${g.order.map((pid, i) => `
+          <li class="turn ${i === 0 ? 'now' : ''}"><span class="tnum">${i + 1}</span><span class="tbody"><span class="tname">${esc(pName(pid))}</span></span></li>`).join('')}
+        </ol>`,
+      actions: [{ label: 'Let’s go', primary: true }],
+    });
+  }
+
   function playEvent(ev) {
+    if (ev && ev.type === 'draw') return showDraw();
     if (!ev || !giftById(ev.gift)) return;
     if (ev.type === 'open') showReveal(ev);
     else announce(ev);
@@ -1373,7 +1407,7 @@
 
   document.addEventListener('change', (e) => {
     const t = e.target;
-    if (t.type === 'checkbox' && t.dataset.setting) { state.settings[t.dataset.setting] = t.checked; save(); return; }
+    if (t.type === 'checkbox' && t.dataset.setting) { state.settings[t.dataset.setting] = t.checked; save(); render(); return; }
     if (t.dataset.upload && t.files?.[0]) { uploadTo(t.dataset.gift, t.dataset.upload, t.files[0]); t.value = ''; return; }
     if (t.hasAttribute('data-bulk') && t.files?.length) { bulkAdd(t.files); t.value = ''; return; }
     if (t.hasAttribute('data-import') && t.files?.[0]) { importBackup(t.files[0]); t.value = ''; return; }

@@ -166,6 +166,7 @@ select.input option { background: var(--panel); color: var(--text); }
 .field-label { font-weight: 700; font-size: 14px; }
 .field small, .check small { display: block; color: var(--muted); font-size: 13px; }
 .check { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-top: 1px solid var(--line); cursor: pointer; }
+.check.first { border-top: 0; padding-top: 0; margin-bottom: 8px; }
 .check input { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--gold); flex: none; cursor: pointer; }
 .check b { font-size: 14.5px; }
 .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -325,6 +326,9 @@ select.input option { background: var(--panel); color: var(--text); }
 .thumb-dot { display: block; width: 100%; height: 100%; }
 .chip { flex: none; font-size: 10.5px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; padding: 4px 8px; border-radius: 999px; background: var(--gold); color: var(--gold-ink); }
 .chip.soft { background: var(--panel-3); color: var(--muted); }
+.turns.draw { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 6px; margin-top: 12px; }
+.turns.draw .turn { background: var(--bg-2); }
+.turns.draw .turn.now { background: linear-gradient(90deg, rgba(233, 185, 73, .22), rgba(233, 185, 73, .05)); }
 .log { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 10px; }
 .log summary { cursor: pointer; font-size: 12.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 8px; list-style: none; }
 .log summary::-webkit-details-marker { display: none; }
