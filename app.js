@@ -169,7 +169,7 @@
   const freshState = () => ({
     v: 1,
     title: 'White Elephant',
-    settings: { maxSteals: 3, noStealBack: true, finalSwap: true },
+    settings: { maxSteals: 3, noStealBack: true, oneStealPerTurn: true, finalSwap: true },
     participants: [], // { id, name } — array order is the turn order
     gifts: [],        // { id, name, color }
     game: null,       // see startGame()
@@ -215,9 +215,15 @@
   const unopened = () => state.gifts.filter((g) => !gs(g.id).opened).map((g) => g.id);
   const maxSteals = () => Math.max(0, parseInt(state.settings.maxSteals, 10) || 0);
   const isLocked = (id) => maxSteals() > 0 && gs(id).steals >= maxSteals();
+  // "One steal per player per turn": during one numbered turn (including the chain of
+  // steals it sets off), someone who already stole and gets robbed again must unwrap.
+  const usedSteal = (pid) => {
+    const g = state.game;
+    return !!(g && state.settings.oneStealPerTurn && g.phase === 'playing' && (g.stoleThisTurn || []).includes(pid));
+  };
   const canSteal = (pid, id) => {
     const s = gs(id);
-    return !!(state.game && s.opened && s.owner && s.owner !== pid && !isLocked(id) && id !== state.game.blocked);
+    return !!(state.game && s.opened && s.owner && s.owner !== pid && !isLocked(id) && id !== state.game.blocked && !usedSteal(pid));
   };
   const stealables = (pid) => state.gifts.filter((g) => canSteal(pid, g.id)).map((g) => g.id);
   function hasMoves(pid) {
@@ -249,6 +255,7 @@
   function nextTurn() {
     const g = state.game;
     g.blocked = null;
+    g.stoleThisTurn = [];
     let i = g.turn + 1;
     while (i < g.order.length && holdings(g.order[i]).length) i++;
     if (i < g.order.length && unopened().length) {
@@ -347,6 +354,7 @@
       const given = holdings(thief).filter((h) => h !== id);
       s.owner = thief;
       s.steals += 1;
+      (g.stoleThisTurn ||= []).push(thief);
       ev.locked = isLocked(id);
       if (given.length) {
         // Thief already had something (final round): it's a swap.
@@ -544,6 +552,10 @@
         <span><b>No immediate steal-backs</b><small>Someone who was just robbed can’t take the same gift straight back.</small></span>
       </label>
       <label class="check">
+        <input type="checkbox" data-setting="oneStealPerTurn" ${s.oneStealPerTurn ? 'checked' : ''}>
+        <span><b>One steal per player per turn</b><small>If someone who already stole this turn gets robbed again, they have to unwrap a new gift.</small></span>
+      </label>
+      <label class="check">
         <input type="checkbox" data-setting="finalSwap" ${s.finalSwap ? 'checked' : ''}>
         <span><b>Player 1 gets a final swap</b><small>Once every gift is open, the first player may swap with anyone, as long as neither gift is locked.</small></span>
       </label>
@@ -684,7 +696,9 @@
       } else if (g.reason === 'robbed') {
         tone = 'robbed';
         title = `${esc(pName(a))}, you’ve been robbed!`;
-        sub = `Open a mystery gift, or steal another one${g.blocked ? ` — just not the <b>${esc(giftLabel(g.blocked))}</b>` : ''}.`;
+        sub = usedSteal(a)
+          ? 'You already stole this turn, so unwrap a mystery gift.'
+          : `Open a mystery gift, or steal another one${g.blocked ? ` — just not the <b>${esc(giftLabel(g.blocked))}</b>` : ''}.`;
       } else {
         title = `${esc(pName(a))}’s turn`;
         sub = 'Open a mystery gift, or steal one that’s already been opened.';
@@ -715,6 +729,7 @@
     }
     if (s.owner === a) return { kind: 'view' };
     if (isLocked(id)) return { kind: 'none', why: `Locked — it’s been stolen ${plural(maxSteals(), 'time')}.` };
+    if (usedSteal(a)) return { kind: 'none', why: `${pName(a)} already stole this turn — unwrap a new gift instead.` };
     if (id === g.blocked) return { kind: 'none', why: `No steal-backs — ${pName(a)} just lost this one.` };
     return { kind: g.phase === 'final' ? 'swap' : 'steal' };
   }

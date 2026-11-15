@@ -18,6 +18,7 @@ A host app for running a White Elephant gift swap on the big screen.
 ### House rules (Setup → House rules)
 - **Max steals per gift** (default 3). After that a gift is locked with whoever has it. Set to 0 for no limit.
 - **No immediate steal-backs**: someone who was just robbed can't take the same gift straight back.
+- **One steal per player per turn**: if someone who already stole during this turn gets robbed again, they have to unwrap a new gift. This stops endless steal chains.
 - **Player 1 gets a final swap** once all gifts are open.
 
 ### Host controls
