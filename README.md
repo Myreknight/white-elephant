@@ -36,6 +36,10 @@ Everything (names, photos, game progress) is stored **in the browser you set it 
 - To move a setup to another computer: **Setup → Export backup**, then **Import backup** on the other machine.
 - Two windows of the app in the same browser stay in sync. You can control from your laptop screen while a second window sits fullscreen on the projector, and reveals play on both.
 
+## In-game versions (work in progress)
+
+Notes on running the exchange inside **Big Walk** or **Rust** (research, a recommended approach and first steps) are in [docs/GAME-INTEGRATIONS.md](docs/GAME-INTEGRATIONS.md).
+
 ## Running locally
 
 It's plain HTML/CSS/JS with no build step. Serve the folder with any static server:
