@@ -1,6 +1,6 @@
 # In-game versions — handoff notes
 
-Notes for picking up work on running this White Elephant exchange **inside a game**, written 2026-11-16 after research on a Mac that doesn't have the games. The next step happens on the group's gaming PC, which has **Big Walk** and **Rust** installed. The group is **PC-only**, so ignore console and crossplay.
+Notes for picking up work on running this White Elephant exchange **inside a game**, written 2026-11-16 after research on a Mac that doesn't have the games. The next step happens on the group's gaming PC, which has **Big Walk** and **Rust** installed. **Valheim** (section 5) was researched too, so check whether it's installed. The group is **PC-only**, so ignore console and crossplay.
 
 Nothing here has been tested in either game yet. Treat the game-specific facts as leads to verify.
 
@@ -48,7 +48,7 @@ Nothing here has been tested in either game yet. Treat the game-specific facts a
 
 ## 2. Shared prerequisite: a live feed
 
-The **Big Walk overlay**, and any **Rust plugin that mirrors the web app**, both need the web app to publish its state online. Proposed approach:
+The **Big Walk overlay**, and any **Rust plugin or Valheim mod that mirrors the web app**, need the web app to publish its state online. Proposed approach:
 
 - Add a small hosted backend (any free-tier realtime DB or tiny API). The host's browser writes state and the mods read it.
 - Photos must be **hosted at real URLs** so mods (and Rust's sign and UI image loaders) can fetch them. Today they're local Blobs, so upload them on save.
@@ -107,7 +107,28 @@ This part doesn't need either game and can be built and tested anywhere.
 4. Prototype: `/we start` draws a random order, a CUI panel shows "X's turn", `/we open <n>` and `/we steal <n>` run the rules, and Sign Artist's API puts a test image on a sign.
 5. Then replace chat commands with interacting with physical boxes and signs.
 
-## 5. Ruled out or parked
+## 5. Valheim
+
+**Facts gathered (unverified on the PC):**
+- **No official mod support** from Iron Gate, and patches regularly break mods. However, the community setup is one of the most established: **BepInExPack Valheim** (a community-maintained BepInEx 5 fork; BepInEx 5 points to a **Mono** build, so the game code should be easy to decompile) plus **Jötunn**, a helper library for adding items and buildable pieces, custom networking, config sync and mod-version checks. Distributed on **Thunderstore**, usually installed with **r2modman**.
+- Mods that add content generally need to be installed on the **server and every client**, at matching versions (Jötunn can enforce this). For a friend group, share one mod-manager profile.
+- **Gift photos:** the Val-Con pack's **OdinsBillboard / OdinsPictureFrame** are buildable pieces that display a PNG from a URL.
+- **Voice is not built in.** Proximity voice mods exist, e.g. Azumatt's **ProximityVoiceChat** (Steam networking; the server doesn't need it) and BORTY's **ValheimVoiceChat**.
+- Up to 10 players per world; dedicated servers are available.
+
+**Two ways to build it:**
+- **Native mod (recommended):** a Jötunn mod that adds a placeable "gift box" piece. Players interact with a box to open it, or with an opened gift to steal it. The server or host keeps the game state from section 1 and broadcasts changes with Jötunn custom RPCs. A small on-screen panel shows whose turn it is and each reveal. Gift photos go in picture frames (or load textures from URLs yourself).
+- **Mirror mod:** a display-only panel reading the live feed (section 2), the same idea as the Big Walk overlay.
+
+**First steps on the PC:**
+1. Install r2modman and make a Valheim profile with BepInExPack Valheim and Jotunn. Launch once and check the BepInEx log.
+2. Confirm the build type: `valheim_Data/Managed/` should contain the game's main assembly (likely `assembly_valheim.dll`). Open it in ILSpy or dnSpyEx.
+3. Start from Jötunn's mod template (the Valheim-Modding org on GitHub has a mod stub; verify the current name), and build a hello-world piece.
+4. Run the Valheim Dedicated Server tool from Steam locally with the same mods, and connect to it.
+5. Prototype: a chat command that starts the exchange (random draw), a placeable gift box, interact to open, an RPC that shows the reveal to everyone, and one picture frame with a test URL.
+6. Before party night, export the r2modman profile code for guests and freeze mod and game versions.
+
+## 6. Ruled out or parked
 - **PEAK:** no official mod tools (Landfall declined Workshop support); same situation as Big Walk.
 - **Skyrim:** single-player at heart; multiplayer only through the fan mod Skyrim Together Reborn, which has uncertain custom-script sync.
 - **Minecraft (Java, Paper plugin):** strong fallback. Players install nothing, images can go on maps from a URL (ImageCanvas), and proximity voice is available through the Simple Voice Chat mod. Testable on a Mac.
@@ -116,4 +137,5 @@ This part doesn't need either game and can be built and tested anywhere.
 ## Sources
 - Big Walk: [Wikipedia](https://en.wikipedia.org/wiki/Big_Walk) · [Steam](https://store.steampowered.com/app/1478500/Big_Walk/) · [Easy Big Walk Mod Manager](https://www.nexusmods.com/bigwalk/mods/24) · [Thunderstore list (fan site)](https://bigwalkmods.wiki/all-mods-list) · [mod safety notes (fan site)](https://bigwalk.online/mods)
 - Rust: [uMod GUI basics](https://umod.org/guides/rust/basic-concepts-of-gui) · [Carbon Lightweight UI](https://docs.carbonmod.gg/devs/core/lightweight-ui) · [Sign Artist](https://umod.org/plugins/sign-artist) · [Facepunch server guidelines](https://support.facepunchstudios.com/hc/en-us/articles/360009062817-Guidelines-for-community-servers-using-plugins-mods) · [Rust server rule considerations](https://www.corrosionhour.com/rust-server-rule-considerations/)
+- Valheim: [Wikipedia](https://en.wikipedia.org/wiki/Valheim) · [installing server mods](https://www.gameserverkings.com/knowledge-base/valheim/how-to-install-mods/) · [server mods after 1.0](https://www.gameserverkings.com/knowledge-base/valheim/best-valheim-server-mods/) · [OdinsValConAssets (billboard/picture frame)](https://thunderstore.io/c/valheim/p/OdinPlus/OdinsValConAssets) · [ProximityVoiceChat](https://thunderstore.io/c/valheim/p/Azumatt/ProximityVoiceChat/) · [ValheimVoiceChat](https://thunderstore.io/c/valheim/p/BORTY/ValheimVoiceChat/)
 - Others: [PEAK FAQ](https://landfall.se/peak-faq) · [Skyrim Together Reborn](https://www.nexusmods.com/skyrimspecialedition/mods/69993) · [ImageCanvas](https://modrinth.com/plugin/imagecanvas) · [Simple Voice Chat](https://www.curseforge.com/minecraft/bukkit-plugins/simple-voice-chat) · [GMod HTML panel](https://wiki.facepunch.com/gmod/HTML)

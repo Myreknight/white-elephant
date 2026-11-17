@@ -38,7 +38,7 @@ Everything (names, photos, game progress) is stored **in the browser you set it 
 
 ## In-game versions (work in progress)
 
-Notes on running the exchange inside **Big Walk** or **Rust** (research, a recommended approach and first steps) are in [docs/GAME-INTEGRATIONS.md](docs/GAME-INTEGRATIONS.md).
+Notes on running the exchange inside **Big Walk**, **Rust** or **Valheim** (research, a recommended approach and first steps) are in [docs/GAME-INTEGRATIONS.md](docs/GAME-INTEGRATIONS.md).
 
 ## Running locally
 
